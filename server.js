@@ -3,9 +3,15 @@ const net = require('net');
 const fs = require('fs');
 const port = 8124;
 let seed = 0;
+let connections = 0;
 const log = fs.createWriteStream('client_id.txt');
 
+const DEFAULT_DIR = process.env.DEFAULT_DIR;
+const MAX_CONNECTIONS = parseInt(process.env.M_CONN);
+
 const server = net.createServer((client) => {
+	if (++connections === MAX_CONNECTIONS) client.destroy();
+
 	client.id = Date.now() + seed++;
 	client.setEncoding('utf8');
 

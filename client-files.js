@@ -31,7 +31,15 @@ client.connect(port, () => {
 
 client.on('data', (data) => {
     console.log(data);
-    
+    if ((data === 'DEC') || (ARRFILES.length === 0)) client.destroy();
+    else if (data === 'ACK' || data === 'NEXT') {
+        let F = ARRFILES.pop();
+        fs.readFile(F, (err, data) => {
+            let buf = data.toString('hex');
+            client.write(buf);
+            client.write(path.basename(F));
+        }); 
+    }    
 });
 
 client.on('close', function () {

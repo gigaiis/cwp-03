@@ -15,60 +15,62 @@ const DEFAULT_DIR = process.env.DEFAULT_DIR;
 const MAX_CONNECTIONS = parseInt(process.env.M_CONN);
 
 const server = net.createServer((client) => {
-	if (++connections === MAX_CONNECTIONS) { 
-		console.log(`[${formatDate()}]: No free slots!\n`);
-		log.write(`[${formatDate()}]: No free slots!\n`);
+	client.id = Date.now() + seed++;
+	client.setEncoding('utf8');
+
+	if (++connections >= MAX_CONNECTIONS + 1) { 
+		console.log(`[${formatDate()}]: For client #${client.id} no free slots!\n`);
+		log.write(`[${formatDate()}]: For client #${client.id} no free slots!\n`);
+		connections--;
 		client.destroy();
-	} else {
-		client.id = Date.now() + seed++;
-		client.setEncoding('utf8');
-
-		console.log(`[${formatDate()}]: Client #${client.id} connected\n`);
-		log.write(`[${formatDate()}]: Client #${client.id} connected\n`);
-
-		client.on('data', (data) => {
-			if ((data === 'FILES') || (data === 'QA')) {
-				if (data === 'FILES') {
-					FILES[client.id] = [];
-	                fs.mkdir(DEFAULT_DIR + path.sep + client.id, () => {});
-				}
-				CLIENTS[client.id] = data;
-				client.write('ACK');
-			}	
-	        else if (client.id === undefined) {
-	            client.write('DEC');
-	            client.destroy();
-	        }
-
-	        if ((CLIENTS[client.id] === 'QA') && (data !== 'QA')) {     	
-			    let answr = 'Bad answer';
-			    if (Math.floor(Math.random() * 2) === 1) {
-			    	let QID = -1;
-		        	for (let i = 0; i < ARRQ.length; i++)
-				        if (ARRQ[i].q === data) {
-				        	QID = i;
-				        	break;
-				        }
-			    	answr = ARRQ[QID].g;
-			    }
-	        	log.write(`[${formatDate()}][#${client.id}] > Data: ${data}; Answer: ${answr}\n`);
-		        client.write(answr);	
-		    } else if (CLIENTS[client.id] === 'FILES' && data !== 'FILES') {
-	            FILES[client.id].push(data);
-	            if (++targ === 2) {
-	                let buf = Buffer.from(FILES[client.id][0], 'hex');
-	                let filePath = DEFAULT_DIR + path.sep + client.id + path.sep + FILES[client.id][1];
-	                console.log(`CHECK: ${filePath}`);
-	                let fr = fs.createWriteStream(filePath);
-	                fr.write(buf);
-	                targ = 0;
-	                FILES[client.id] = [];
-	                fr.close();
-	                client.write('NEXT');
-	            }
-	        }
-		});
+		return;
 	}
+
+	console.log(`[${formatDate()}]: Client #${client.id} connected\n`);
+	log.write(`[${formatDate()}]: Client #${client.id} connected\n`);
+
+	client.on('data', (data) => {
+		if ((data === 'FILES') || (data === 'QA')) {
+			if (data === 'FILES') {
+				FILES[client.id] = [];
+                fs.mkdir(DEFAULT_DIR + path.sep + client.id, () => {});
+			}
+			CLIENTS[client.id] = data;
+			client.write('ACK');
+		}	
+        else if (client.id === undefined) {
+            client.write('DEC');
+            client.destroy();
+        }
+
+        if ((CLIENTS[client.id] === 'QA') && (data !== 'QA')) {     	
+		    let answr = 'Bad answer';
+		    if (Math.floor(Math.random() * 2) === 1) {
+		    	let QID = -1;
+	        	for (let i = 0; i < ARRQ.length; i++)
+			        if (ARRQ[i].q === data) {
+			        	QID = i;
+			        	break;
+			        }
+		    	answr = ARRQ[QID].g;
+		    }
+        	log.write(`[${formatDate()}][#${client.id}] > Data: ${data}; Answer: ${answr}\n`);
+	        client.write(answr);	
+	    } else if (CLIENTS[client.id] === 'FILES' && data !== 'FILES') {
+            FILES[client.id].push(data);
+            if (++targ === 2) {
+                let buf = Buffer.from(FILES[client.id][0], 'hex');
+                let filePath = DEFAULT_DIR + path.sep + client.id + path.sep + FILES[client.id][1];
+                console.log(`CHECK: ${filePath}`);
+                let fr = fs.createWriteStream(filePath);
+                fr.write(buf);
+                targ = 0;
+                FILES[client.id] = [];
+                fr.close();
+                client.write('NEXT');
+            }
+        }
+	});
 
 	client.on('end', () => {
 		connections--;

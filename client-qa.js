@@ -10,7 +10,6 @@ let CURRENTID = -1;
 
 client.setEncoding('utf8');
 client.connect(port, () => { 
-	console.log(`X = ${process.env.X}`);
 	console.log('Connected'); 
 	client.write('QA');
 });
@@ -20,8 +19,8 @@ client.on('data', (data) => {
 	if (data === 'DEC') client.destroy();
 	else if (data === 'ACK') sendQuestion();
 	else { 
-		console.log('Question: ' + ARRQ[CURRENTID].q);
-        console.log('Answer: ' + ARRQ[CURRENTID].g);
+		console.log(`Question: ${ARRQ[CURRENTID].q}`);
+        console.log(`Answer: ${ARRQ[CURRENTID].g}`);
         console.log(`Server answer: ${data}`);
         sendQuestion();
 	}
